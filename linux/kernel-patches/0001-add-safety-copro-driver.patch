@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Real-Time Safety Co-Processor Supervisor Project <noreply@example.com>
+Date: Fri, 27 Jun 2026 00:00:00 +0000
+Subject: [PATCH] drivers: wire in safety_copro built-in character driver
+
+Add the Real-Time Safety Co-Processor Supervisor character driver to the
+drivers tree. The driver sources live in drivers/safety_copro/ and are
+copied into the kernel tree by scripts/01_build_linux_kernel.sh, so this
+patch only needs to register the subdirectory with Kconfig and the build:
+
+  - drivers/Kconfig:  add `source "drivers/safety_copro/Kconfig"`
+  - drivers/Makefile: add `obj-$(CONFIG_SAFETY_COPRO) += safety_copro/`
+
+The driver is built-in only (bool Kconfig, obj-y) and exposes
+/dev/safety_copro via a misc device.
+
+Signed-off-by: Real-Time Safety Co-Processor Supervisor Project <noreply@example.com>
+---
+ drivers/Kconfig  | 2 ++
+ drivers/Makefile | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 7bdd14a7d2af..6c0d8f3b9a51 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -243,4 +243,6 @@ source "drivers/hte/Kconfig"
+
+ source "drivers/cdx/Kconfig"
+
++source "drivers/safety_copro/Kconfig"
++
+ endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+index 45d1c3e630f7..b9d2f3a4c1e8 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -195,3 +195,5 @@ obj-$(CONFIG_CDX_BUS)		+= cdx/
+ obj-$(CONFIG_DPLL)		+= dpll/
+
+ obj-$(CONFIG_S390)		+= s390/
++
++obj-$(CONFIG_SAFETY_COPRO)	+= safety_copro/
+--
+2.43.0

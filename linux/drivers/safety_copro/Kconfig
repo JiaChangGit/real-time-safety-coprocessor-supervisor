@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Safety Co-Processor Supervisor driver 的 Kconfig
+#
+# 本 driver 設計為「內建 (built-in)」，因此使用 bool 而非 tristate；選 y 後會
+# 以 obj-y 連入 vmlinux，於開機 initcall 階段註冊 /dev/safety_copro。
+#
+
+config SAFETY_COPRO
+	bool "Safety Co-Processor Supervisor driver"
+	default y
+	help
+	  Built-in character driver that acts as the kernel-side monitor for
+	  the Real-Time Safety Co-Processor Supervisor project. It exposes
+	  /dev/safety_copro to userspace (safety-supervisord), accepts framed
+	  protocol bytes via write(), buffers received frames in a kfifo for
+	  read()/poll(), runs an hrtimer heartbeat watchdog, defers recovery
+	  to a workqueue, keeps per-CPU RX statistics, and exports a debugfs
+	  view under /sys/kernel/debug/safety_copro/. It also emits tracepoints
+	  in the "safety_copro" trace subsystem consumed by an eBPF agent.
+
+	  This is a built-in driver (obj-y); there is no module build. Say Y
+	  unless you are building a kernel that will never run the supervisor.

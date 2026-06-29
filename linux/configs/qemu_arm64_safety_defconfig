@@ -1,0 +1,174 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# qemu_arm64_safety_defconfig
+#
+# 用途：在 QEMU "virt" 機型上以 SMP ARM64 啟動，跑 Real-Time Safety
+# Co-Processor Supervisor 的 kernel 端 (內建 safety_copro driver) 與 userspace。
+# 這是「足以開機並驗證本專案」的精簡 config，非完整發行版 config。
+#
+# 套用方式 (合併進 arm64 defconfig 之上)：
+#   make ARCH=arm64 defconfig
+#   ./scripts/kconfig/merge_config.sh .config \
+#        linux/configs/qemu_arm64_safety_defconfig
+# 或直接作為 fragment 由 build script 合併。
+#
+# 啟動範例：
+#   qemu-system-aarch64 -M virt -cpu cortex-a57 -smp 4 -m 1G \
+#     -kernel Image -append "console=ttyAMA0 root=/dev/vda rw" \
+#     -drive file=rootfs.img,if=virtio,format=raw \
+#     -initrd initramfs.cpio.gz -nographic
+
+# ---- 基礎架構：64-bit ARM、SMP ----
+# ARM64 = AArch64；64BIT 由 ARM64 隱含選上；SMP 讓 per-CPU 統計有意義。
+CONFIG_ARM64=y
+CONFIG_64BIT=y
+CONFIG_SMP=y
+CONFIG_NR_CPUS=8
+
+# ---- QEMU virt 平台 ----
+# ARCH_VIRT 對應 QEMU 的 -M virt；PCI host generic 供 virtio-pci 使用。
+CONFIG_ARCH_VIRT=y
+CONFIG_PCI=y
+CONFIG_PCI_HOST_GENERIC=y
+
+# ---- 序列埠主控台 ----
+# PL011 (AMBA) 是 QEMU virt 的預設 UART (ttyAMA0)；同時保留 8250 以防其他機型。
+CONFIG_SERIAL_AMBA_PL011=y
+CONFIG_SERIAL_AMBA_PL011_CONSOLE=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_OF_PLATFORM=y
+CONFIG_TTY=y
+
+# ---- virtio 裝置 (磁碟 / 主控台 / MMIO+PCI 傳輸) ----
+# rootfs 走 virtio-blk；virtio-console 可作為 supervisor 與 firmware 的橋接通道。
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_MENU=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_MMIO=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VIRTIO_CONSOLE=y
+CONFIG_VIRTIO_NET=y
+
+# ---- 區塊裝置 / 檔案系統 / initrd ----
+# INITRD/initramfs 提供開機 rootfs；EXT4 給 virtio-blk 根檔案系統。
+CONFIG_BLK_DEV=y
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_BLK_DEV_RAM=y
+CONFIG_EXT4_FS=y
+CONFIG_TMPFS=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_PROC_FS=y
+CONFIG_SYSFS=y
+
+# ---- debugfs：safety_copro 的 /sys/kernel/debug/safety_copro/ 介面所需 ----
+CONFIG_DEBUG_FS=y
+
+# ---- ftrace / tracepoints：safety_copro tracepoint 與 eBPF 掛載所需 ----
+# TRACEPOINTS 由 TRACING 隱含；FTRACE + ENABLE_DEFAULT_TRACERS 讓 tracefs 可用。
+CONFIG_FTRACE=y
+CONFIG_TRACING=y
+CONFIG_ENABLE_DEFAULT_TRACERS=y
+
+# ---- eBPF (CO-RE)：userspace eBPF agent 透過 tracepoint 收集事件 ----
+# BPF_SYSCALL 提供 bpf(2)；DEBUG_INFO_BTF 產生 vmlinux BTF 供 CO-RE relocation；
+# BPF_EVENTS 讓 BPF 能掛在 tracepoint/perf event 上。
+CONFIG_BPF=y
+CONFIG_BPF_SYSCALL=y
+CONFIG_BPF_JIT=y
+CONFIG_BPF_EVENTS=y
+CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
+CONFIG_DEBUG_INFO_BTF=y
+CONFIG_PERF_EVENTS=y
+
+# ---- 高解析度計時器：heartbeat watchdog 使用 hrtimer ----
+CONFIG_HIGH_RES_TIMERS=y
+
+# ---- 本專案的內建 driver ----
+# 內建 (=y) 不可為 module；提供 /dev/safety_copro。
+CONFIG_SAFETY_COPRO=y
+
+# ---- 一般性開機需求 ----
+CONFIG_PRINTK=y
+CONFIG_BINFMT_ELF=y
+CONFIG_UNIX=y
+CONFIG_INET=y
+CONFIG_NET=y
+
+# ---- 不需要可載入模組 (全部內建) ----
+# 明確關閉 MODULES，逼出任何被誤設為 =m 的相依，確保純內建建置。
+# CONFIG_MODULES is not set
+
+# ---- QEMU virt guest scope ----
+# arm64 defconfig enables most physical SoC families and desktop/media stacks.
+# They are not needed by the DT-described QEMU virt machine and make a built-in
+# kernel unnecessarily expensive on the constrained demo host.
+# CONFIG_ARCH_ACTIONS is not set
+# CONFIG_ARCH_AIROHA is not set
+# CONFIG_ARCH_SUNXI is not set
+# CONFIG_ARCH_ALPINE is not set
+# CONFIG_ARCH_APPLE is not set
+# CONFIG_ARCH_BCM is not set
+# CONFIG_ARCH_BERLIN is not set
+# CONFIG_ARCH_EXYNOS is not set
+# CONFIG_ARCH_SPARX5 is not set
+# CONFIG_ARCH_K3 is not set
+# CONFIG_ARCH_LG1K is not set
+# CONFIG_ARCH_HISI is not set
+# CONFIG_ARCH_KEEMBAY is not set
+# CONFIG_ARCH_MEDIATEK is not set
+# CONFIG_ARCH_MESON is not set
+# CONFIG_ARCH_MVEBU is not set
+# CONFIG_ARCH_NXP is not set
+# CONFIG_ARCH_QCOM is not set
+# CONFIG_ARCH_REALTEK is not set
+# CONFIG_ARCH_RENESAS is not set
+# CONFIG_ARCH_ROCKCHIP is not set
+# CONFIG_ARCH_SEATTLE is not set
+# CONFIG_ARCH_INTEL_SOCFPGA is not set
+# CONFIG_ARCH_STM32 is not set
+# CONFIG_ARCH_SYNQUACER is not set
+# CONFIG_ARCH_TEGRA is not set
+# CONFIG_ARCH_TESLA_FSD is not set
+# CONFIG_ARCH_SPRD is not set
+# CONFIG_ARCH_THUNDER is not set
+# CONFIG_ARCH_THUNDER2 is not set
+# CONFIG_ARCH_UNIPHIER is not set
+# CONFIG_ARCH_VEXPRESS is not set
+# CONFIG_ARCH_VISCONTI is not set
+# CONFIG_ARCH_XGENE is not set
+# CONFIG_ARCH_ZYNQMP is not set
+
+# This guest is a KVM client, not a hypervisor or Xen domain.
+# CONFIG_KVM is not set
+# CONFIG_XEN is not set
+# CONFIG_ACPI is not set
+# CONFIG_EFI is not set
+# CONFIG_HIBERNATION is not set
+# CONFIG_SUSPEND is not set
+
+# Serial-only demo: no display, audio, camera, input, or removable storage.
+# CONFIG_SOUND is not set
+# CONFIG_DRM is not set
+# CONFIG_FB is not set
+# CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_INPUT is not set
+# CONFIG_HID_SUPPORT is not set
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_MMC is not set
+# CONFIG_MTD is not set
+# CONFIG_SCSI is not set
+# CONFIG_ATA is not set
+
+# The root filesystem is the BusyBox initramfs. Keep ext4 for optional virtio
+# disks, but omit unrelated large filesystem stacks.
+# CONFIG_NFS_FS is not set
+# CONFIG_BTRFS_FS is not set
+# CONFIG_UBIFS_FS is not set
+# CONFIG_FUSE_FS is not set
+# CONFIG_OVERLAY_FS is not set
+# CONFIG_9P_FS is not set
+# CONFIG_AUTOFS_FS is not set
+# CONFIG_SQUASHFS is not set
